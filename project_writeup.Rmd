@@ -1,0 +1,180 @@
+---
+title: "Project of Practical Machine Learning"
+author: "Huang Sihao"
+date: "Saturday, July 26, 2014"
+output: html_document
+---
+
+The course project involves a key research area which is known as *Human Activity Recognition*. During this project, we are required to use machine learning algorithms to predict the manner in which they(subjects) did in the exercise. Additionally, there are many techniques taught by *Professor Jeff Leek* so that we can feel free to use. And also, this program is inspired by the section on the Weight Lifting Exercise <http://groupware.les.inf.puc-rio.br/har>. Finally, tons of great ideas from *Disscussion Forum* are embeded into our final report.
+
+Specifically, we execute the following steps:
+
+-
+Process the raw data
+-
+Prepare for the next program
+-
+Pre-process with PCA analysis
+-
+Fit the model using random forest
+-
+Analyze the error and predict the testing data
+- 
+Save our results
+
+In the remaining of our report, we will explain what the logic and main methods are. Hope you find them useful!
+
+
+**I.Process the Raw Data**
+
+**In this section,** we try to exclude those distracting information to ensure the validity of our data. 
+
+First,we delete those columns which contain NAs and "" as well as those unrelated to the final outcome, say, the first 1-6 columns in the pml-training.csv and the last columns in the pml-testing.csv. 
+
+As a result, our data become more clean and persuasive in expressing the main features of this exercise. Finally, we get the 19622 obs.of 54 variables for training data and 20 obs.of 53 variables for testing data.
+
+**Note:** deleting the columns has been finished via Excel 2013.
+
+**Note:** the reason why training data has one more variable is that it contains classe while testing data does not.
+
+**II.Prepare for Program**
+
+**In this section,** we try to do some essential preparation for the next steps.  
+ 
+To make functions we want to use avalilable, we load four pacakages.
+
+```{r}
+library(AppliedPredictiveModeling)
+library(caret) 
+library(kernlab)
+library(randomForest)
+```
+
+Then, we split training data into *preditors*( variables for predicting) and *outcomes*(classe). The testing data remains same. As the dim() shows, we obtain 19622¡Á53 predictors and 19622¡Á1 outcomes. Meanwhile, we have 20¡Á53 tempTest(testing data).
+
+```{r}
+# R command is shown here
+tempTrain = read.csv("pml-training-3.csv",na.strings="NA") 
+tempTest = read.csv("pml-testing-3.csv",na.strings="NA") 
+tempTest = tempTest[,c(-1,-55)] #drop out the indicies and problem id 
+predictors = tempTrain[,c(-1,-55)] # extract all the predictors and leave out the index and the classe
+outcomes = tempTrain[,55] # extract the outcomes of training data
+```
+
+```{r}
+# R command is shown here
+dim(predictors)
+dim(outcomes)
+dim(tempTest)
+```
+
+**Note:** the result of dim(outcomes) is Null because its dimension is equal to one.
+
+**III.Pre-process with PCA**
+
+**In this section,** we aim at realizing the dimensionality reduction. The reason why we use PCA is that it is rather easy to implement. Also, PCA can extract the main explanatory factors and save a large amount of computational cost. By using PCA, we also need not worry about the high correlation between variables cause this issue has been solved in the propcess of PCA method. 
+
+Then, we apply PCA method to both *preditors* and testing data. 
+
+```{r}
+# R command is shown here
+preProc = preProcess(predictors,method="pca",thresh=0.90)
+trainPC = predict(preProc, predictors) 
+testPC = predict(preProc, tempTest) 
+```
+
+**Note:** we only use PCA to preprocess those variables for prediction. We must keep all the variables as numeric or interger so that PCA can work.
+
+```{r}
+# R command is shown here
+dim(predictors)
+dim(outcomes)
+dim(tempTest)
+```
+
+We can use dim() to get the dimension of our new train and test data which are propcessed by PCA. As it shows above, both train and test data contains 19 variables. 
+
+```{r}
+# This plot gives us an intuitive feel about correlatins between PCs.
+plot(trainPC[,1],trainPC[,2],xlab="PC1",ylab="PC2") 
+```
+
+
+**IV.Fit the Model With Random Forest**
+
+**In this section,** we are supposed to run random forest for our classification problem. 
+
+First,we use cbind() function to merge predictors(PCA) and outcomes. Then, we split our train data(PCA) to 70% traing set and 30% testing set.  
+
+```{r}
+# R command is shown here
+finalData = cbind(outcomes,trainPC)
+inTrain = createDataPartition(y=finalTrain$outcomes,
+                               p=0.70, list=FALSE)
+finalDatatraining = finalData[inTrain,]
+finalDatatesting = finalData[-inTrain,]
+```
+
+The key step is that we use train()function to run the random forest by applying the method="rf". 
+
+```{r}
+# R command is shown here
+modFit = train(outcomes~.,method="rf",data=finalDatatraining) 
+print(modFit)
+```
+
+**V.Analyze the error and predict the testing data**
+
+**In this section,** we predict on the 30% subsample of training data and eventually apply the model to predict the 20 objects of testing data.
+
+First, we use the fitted model obtained from rf to check the accuracy of testing set which is splitted from the training data(PCA). We find the accuracy of cross-validation(70%training and 30%testing) is around 0.991.
+
+```{r}
+# R command is shown here
+pred = predict(modFit, finalDatatesting) 
+confusionMatrix(finalDatatesting$outcomes,pred)
+```
+
+Henceforth, we predict the 20 objects of testing data(PCA) and obtain the answers given by our prediction.
+
+```{r}
+# R command is shown here
+pred2 = predict(modFit, testPC)
+print(pred2)
+```
+
+**VI.Save the result**
+
+We strictly follow the method given by the instruction of *Course:Assignment* and successfully create the 20 different text files.
+
+```{r}
+answers = c("B", "A", "B", "A", "A", "E", "D", "B", "A", "A", "B", "C", "B", "A", "E", "E", "A", "B", "B", "B" )
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x
+                [i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers) 
+```
+
+**VII.Conclusion**
+
+Overall, our algorithms works very well, say, cross-validation accuracy is around 0.991 which is very high. This is one side, the other side is that all the answers are correct when they are submitted into the **Course Project:Submission**. 
+
+However,we also need further experiments on how to improve the efficiency of our algorithms. Because the train() of which method="rf" takes about 30 minutes to run random forest. Therefore, we can propose some alternative methods to preprocess our data other than PCA. 
+
+- 
+findCorrelation() )
+- 
+nearZeroVar() )
+- 
+variable importance
+- 
+clustering (say. K-Means)
+
+
+
+
