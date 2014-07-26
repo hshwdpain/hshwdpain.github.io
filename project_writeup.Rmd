@@ -50,7 +50,7 @@ library(kernlab)
 library(randomForest)
 ```
 
-Then, we split training data into *preditors*( variables for predicting) and *outcomes*(classe). The testing data remains same. As the dim() shows, we obtain 19622¡Á53 predictors and 19622¡Á1 outcomes. Meanwhile, we have 20¡Á53 tempTest(testing data).
+Then, we split training data into *preditors*( variables for predicting) and *outcomes*(classe). The testing data remains same. As the dim() shows, we obtain 19622Ã—53 predictors and 19622Ã—1 outcomes. Meanwhile, we have 20Ã—53 tempTest(testing data).
 
 ```{r}
 # R command is shown here
@@ -174,7 +174,6 @@ nearZeroVar() )
 variable importance
 - 
 clustering (say. K-Means)
-
 
 
 
